@@ -1,0 +1,17 @@
+{
+  "name": "web-rtc-nest",
+  "private": true,
+  "packageManager": "pnpm@10.26.2",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @web-rtc-nest/server --filter @web-rtc-nest/client dev",
+    "dev:server": "pnpm --filter @web-rtc-nest/server dev",
+    "dev:client": "pnpm --filter @web-rtc-nest/client dev",
+    "build": "pnpm -r --filter @web-rtc-nest/server --filter @web-rtc-nest/client build",
+    "start": "pnpm --filter @web-rtc-nest/server start",
+    "lint": "pnpm -r --filter @web-rtc-nest/server --filter @web-rtc-nest/client lint",
+    "preview:client": "pnpm --filter @web-rtc-nest/client preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
