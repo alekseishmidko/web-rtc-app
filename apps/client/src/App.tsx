@@ -12,7 +12,7 @@ type RemoteVideo = Peer & {
 
 type SignalMessage = RTCSessionDescriptionInit | RTCIceCandidateInit;
 
-const signalingUrl = import.meta.env.VITE_SIGNALING_URL ?? 'http://127.0.0.1:3000';
+const signalingUrl = import.meta.env.VITE_SIGNALING_URL ?? 'http://127.0.0.1:3001';
 
 const rtcConfig: RTCConfiguration = {
   // STUN помогает браузеру найти сетевой маршрут для прямого WebRTC-соединения.

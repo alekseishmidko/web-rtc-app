@@ -1,5 +1,5 @@
 {
-  "name": "@web-rtc-nest/server",
+  "name": "@web-rtc-nest/signaling-service",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/platform-socket.io": "^11.0.0",
     "@nestjs/websockets": "^11.0.0",
+    "@web-rtc-nest/contracts": "workspace:*",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1"
@@ -26,6 +28,7 @@
     "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "@web-rtc-nest/eslint-config": "workspace:*",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.4.2",

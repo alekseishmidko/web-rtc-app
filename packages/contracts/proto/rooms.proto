@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package rooms;
+
+service RoomService {
+  rpc CreateRoom (CreateRoomRequest) returns (RoomResponse);
+  rpc GetRoom (GetRoomRequest) returns (RoomResponse);
+  rpc ListRooms (ListRoomsRequest) returns (ListRoomsResponse);
+  rpc CreateInvite (CreateInviteRequest) returns (InviteResponse);
+}
+
+message CreateRoomRequest {
+  string owner_id = 1;
+  string title = 2;
+  bool is_private = 3;
+  string starts_at = 4;
+}
+
+message GetRoomRequest {
+  string room_id = 1;
+}
+
+message ListRoomsRequest {
+  string owner_id = 1;
+}
+
+message CreateInviteRequest {
+  string room_id = 1;
+  string created_by = 2;
+  repeated string recipient_emails = 3;
+}
+
+message RoomResponse {
+  string id = 1;
+  string owner_id = 2;
+  string title = 3;
+  bool is_private = 4;
+  string starts_at = 5;
+  string created_at = 6;
+}
+
+message ListRoomsResponse {
+  repeated RoomResponse rooms = 1;
+}
+
+message InviteResponse {
+  string invite_id = 1;
+  string room_id = 2;
+  string invite_url = 3;
+}

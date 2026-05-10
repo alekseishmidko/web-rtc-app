@@ -1,8 +1,10 @@
 # WebRTC Nest Monorepo
 
-pnpm-монорепа с двумя приложениями:
+pnpm-монорепа с несколькими приложениями:
 
-- `apps/server` - NestJS signaling-сервер;
+- `apps/server/gateway-service` - HTTP/gRPC gateway и Socket.IO signaling;
+- `apps/server/auth-service` - gRPC auth-сервис с Postgres, Drizzle ORM и Redis-сессиями;
+- `apps/server/signaling-service` - отдельный NestJS signaling-сервер;
 - `apps/client` - React/Vite клиент видеокомнаты.
 
 Приложение показывает минимальную видеокомнату на WebRTC. Сервер не передает
@@ -12,9 +14,11 @@ pnpm-монорепа с двумя приложениями:
 
 ## Структура
 
-- `apps/server/src/main.ts` - точка входа NestJS приложения.
-- `apps/server/src/app.module.ts` - подключает WebSocket gateway.
-- `apps/server/src/signaling.gateway.ts` - Socket.IO gateway для комнат и WebRTC-сигналинга.
+- `apps/server/signaling-service/src/main.ts` - точка входа отдельного signaling-сервера.
+- `apps/server/signaling-service/src/app.module.ts` - подключает signaling module.
+- `apps/server/gateway-service/src/modules/signaling/signaling.gateway.ts` - Socket.IO gateway для комнат и WebRTC-сигналинга.
+- `apps/server/gateway-service/src/modules/signaling/signaling.service.ts` - состояние комнат и участников.
+- `apps/server/auth-service/src/modules/auth` - регистрация, логин и проверка Redis-сессий.
 - `apps/client/src/App.tsx` - React-компонент с логикой комнаты и WebRTC.
 - `apps/client/src/styles.css` - стили интерфейса.
 - `apps/client/vite.config.ts` - конфигурация Vite.
@@ -41,7 +45,7 @@ pnpm dev
 
 Команда запускает оба приложения:
 
-- сервер: `http://127.0.0.1:3000`
+- gateway-service: `http://127.0.0.1:3001`
 - клиент: `http://127.0.0.1:5173`
 
 Откройте `http://127.0.0.1:5173` в двух вкладках браузера, введите одинаковое
@@ -50,15 +54,17 @@ pnpm dev
 Можно запускать приложения отдельно:
 
 ```bash
-pnpm dev:server
+pnpm dev:signaling
+pnpm dev:auth
+pnpm dev:gateway
 pnpm dev:client
 ```
 
-По умолчанию клиент подключается к signaling-серверу `http://127.0.0.1:3000`.
+По умолчанию клиент подключается к signaling gateway `http://127.0.0.1:3001`.
 Если сервер запущен по другому адресу, задайте переменную:
 
 ```bash
-VITE_SIGNALING_URL=http://127.0.0.1:3000 pnpm dev:client
+VITE_SIGNALING_URL=http://127.0.0.1:3001 pnpm dev:client
 ```
 
 Чтобы открыть приложение с другого устройства в той же сети, запустите сервер так:
@@ -70,7 +76,7 @@ HOST=0.0.0.0 pnpm dev
 Для клиента в этом случае тоже укажите адрес signaling-сервера:
 
 ```bash
-VITE_SIGNALING_URL=http://<ip-компьютера>:3000 pnpm dev:client
+VITE_SIGNALING_URL=http://<ip-компьютера>:3001 pnpm dev:client
 ```
 
 ## Сборка
@@ -80,7 +86,8 @@ pnpm build
 pnpm start
 ```
 
-`pnpm start` запускает только собранный NestJS сервер. Собранный клиент можно
+`pnpm start` запускает только собранный NestJS signaling-service. Gateway-service
+можно запустить отдельно через `pnpm start:gateway`. Собранный клиент можно
 посмотреть через Vite preview:
 
 ```bash
