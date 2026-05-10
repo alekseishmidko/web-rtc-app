@@ -1,0 +1,11 @@
+{
+  "name": "@web-rtc-nest/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "types": "src/index.ts",
+  "files": [
+    "proto",
+    "src"
+  ]
+}
