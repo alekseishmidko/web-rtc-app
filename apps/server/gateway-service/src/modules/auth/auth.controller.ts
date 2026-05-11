@@ -19,7 +19,7 @@ import {
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController implements OnModuleInit {
-  private authService!: AuthGrpcService;
+  private authService: AuthGrpcService;
 
   constructor(
     @Inject(AUTH_GRPC_CLIENT)
@@ -39,7 +39,9 @@ export class AuthController implements OnModuleInit {
     @Body() body: RegisterRequestDto,
     @Res({ passthrough: true }) response: CookieResponse,
   ) {
+    console.log('12')
     const authResponse = await firstValueFrom(this.authService.register(body));
+    console.log(authResponse);
     this.authCookieService.setAuthCookies(response, authResponse);
 
     return { user: authResponse.user };
