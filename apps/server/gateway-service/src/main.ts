@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import {GrpcExceptionFilter} from "./grpc/grpc-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -9,7 +10,7 @@ async function bootstrap() {
 
   app.enableCors();
   app.setGlobalPrefix('api');
-
+  app.useGlobalFilters(new GrpcExceptionFilter());
   const swaggerConfig = new DocumentBuilder()
     .setTitle('WebRTC Gateway API')
     .setDescription('HTTP gateway for auth, rooms, notifications and signaling support.')

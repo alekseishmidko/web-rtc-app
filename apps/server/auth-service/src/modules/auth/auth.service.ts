@@ -69,30 +69,52 @@ export class AuthService implements OnModuleInit {
   }
 
   async register(request: RegisterRequest): Promise<AuthResponse> {
-    // Регистрация одновременно создает user в Postgres и новую Redis-сессию.
-    // Это аутентифицирует клиента сразу после успешного создания аккаунта.
-    const email = request.email?.trim().toLowerCase();
-    const name = request.name?.trim();
+    const email = request.email;
+    const name = request.name;
+    const password = request.password;
 
-    if (!email || !name || !request.password) {
-      throw this.createRpcException(status.INVALID_ARGUMENT, 'Email, name and password are required.');
+    if (!email || !name || !password) {
+      throw this.createRpcException(
+          status.INVALID_ARGUMENT,
+          'Email, name and password are required.',
+      );
     }
 
-    const passwordHash = await this.passwordService.hash(request.password);
+    const existingUser = await this.database.query.users.findFirst({
+      where: eq(users.email, email),
+      columns: {
+        id: true,
+      },
+    });
+
+    if (existingUser) {
+
+      throw this.createRpcException(
+          status.ALREADY_EXISTS,
+          'User with this email already exists.',
+      );
+    }
+
+    const passwordHash = await this.passwordService.hash(password);
 
     try {
-      // role всегда задается как user. Выдача admin-ролей должна быть отдельным
-      // административным workflow, иначе register станет вектором privilege escalation.
       const [user] = await this.database
-        .insert(users)
-        .values({
-          id: randomUUID(),
-          name,
-          email,
-          passwordHash,
-          role: 'user',
-        })
-        .returning();
+          .insert(users)
+          .values({
+            id: randomUUID(),
+            name,
+            email,
+            passwordHash,
+            role: 'user',
+          })
+          .returning();
+
+      if (!user) {
+        throw this.createRpcException(
+            status.INTERNAL,
+            'Failed to create user.',
+        );
+      }
 
       const sessions = await this.tokenService.createPair(user.id);
 
@@ -102,13 +124,15 @@ export class AuthService implements OnModuleInit {
       };
     } catch (error) {
       if (this.isUniqueViolation(error)) {
-        throw this.createRpcException(status.ALREADY_EXISTS, 'User with this email already exists.');
+        throw this.createRpcException(
+            status.ALREADY_EXISTS,
+            'User with this email already exists.',
+        );
       }
 
       throw error;
     }
   }
-
   async login(request: LoginRequest): Promise<AuthResponse> {
     // Login - это аутентификация: проверяем, что пользователь владеет секретом
     // password, и только после этого выдаем новый opaque sessionId.

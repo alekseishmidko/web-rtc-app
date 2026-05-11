@@ -18,6 +18,7 @@ async function bootstrap() {
     },
   });
 
+  await app.init();
   await app.startAllMicroservices();
   console.log(`Auth service gRPC is running on ${grpcUrl}`);
 }
