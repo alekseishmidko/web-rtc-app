@@ -1,8 +1,9 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import {GrpcExceptionFilter} from "./grpc/grpc-exception.filter";
+import {GrpcExceptionFilter} from "./shared/grpc-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,7 +26,7 @@ async function bootstrap() {
   const host = configService.getOrThrow<string>('HOST');
 
   await app.listen(port, host);
-  console.log(`Gateway service is running on http://${host}:${port}/api/docs`);
+  Logger.log(`Gateway service is running on http://${host}:${port}/api/docs`, 'Bootstrap');
 
 }
 

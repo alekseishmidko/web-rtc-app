@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.26.2",
   "scripts": {
-    "dev": "pnpm -r --parallel --filter @web-rtc-nest/gateway-service",
+    "dev": "pnpm --filter @web-rtc-nest/gateway-service dev",
     "dev:auth": "pnpm --filter @web-rtc-nest/auth-service dev",
     "dev:gateway": "pnpm --filter @web-rtc-nest/gateway-service dev",
     "dev:signaling": "pnpm --filter @web-rtc-nest/signaling-service dev",
@@ -15,10 +15,16 @@
     "start": "pnpm --filter @web-rtc-nest/signaling-service start",
     "start:auth": "pnpm --filter @web-rtc-nest/auth-service start",
     "start:gateway": "pnpm --filter @web-rtc-nest/gateway-service start",
-    "lint": "pnpm -r --filter @web-rtc-nest/auth-service --filter @web-rtc-nest/signaling-service --filter @web-rtc-nest/gateway-service --filter @web-rtc-nest/client lint",
+    "lint": "eslint . --max-warnings=0 && pnpm --filter @web-rtc-nest/client lint",
+    "format": "prettier --write --ignore-unknown .",
+    "format:check": "prettier --check --ignore-unknown .",
     "preview:client": "pnpm --filter @web-rtc-nest/client preview"
   },
   "devDependencies": {
+    "@web-rtc-nest/eslint-config": "workspace:*",
+    "@web-rtc-nest/prettier-config": "workspace:*",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
     "typescript": "^5.8.3"
   }
 }

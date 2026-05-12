@@ -1,20 +1,23 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import type { OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { status } from '@grpc/grpc-js';
 import { RpcException } from '@nestjs/microservices';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { AuthDatabase, DATABASE } from '../../database/database.module';
-import { UserRecord, users } from '../../database/user.schema';
-import {
+import type { AuthDatabase } from '../../database/database.module';
+import { DATABASE } from '../../database/database.module';
+import type { UserRecord } from '../../database/user.schema';
+import { users } from '../../database/user.schema';
+import type {
   AuthResponse,
   AuthUser,
   LoginRequest,
   RefreshSessionRequest,
   RegisterRequest,
   ValidateSessionResponse,
-} from './auth.types';
-import { PasswordService } from './password.service';
-import { TokenService } from '../token/token.service';
+} from '@web-rtc-nest/contracts';
+import type { PasswordService } from './password.service';
+import type { TokenService } from '../token/token.service';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -75,8 +78,8 @@ export class AuthService implements OnModuleInit {
 
     if (!email || !name || !password) {
       throw this.createRpcException(
-          status.INVALID_ARGUMENT,
-          'Email, name and password are required.',
+        status.INVALID_ARGUMENT,
+        'Email, name and password are required.',
       );
     }
 
@@ -88,32 +91,25 @@ export class AuthService implements OnModuleInit {
     });
 
     if (existingUser) {
-
-      throw this.createRpcException(
-          status.ALREADY_EXISTS,
-          'User with this email already exists.',
-      );
+      throw this.createRpcException(status.ALREADY_EXISTS, 'User with this email already exists.');
     }
 
     const passwordHash = await this.passwordService.hash(password);
 
     try {
       const [user] = await this.database
-          .insert(users)
-          .values({
-            id: randomUUID(),
-            name,
-            email,
-            passwordHash,
-            role: 'user',
-          })
-          .returning();
+        .insert(users)
+        .values({
+          id: randomUUID(),
+          name,
+          email,
+          passwordHash,
+          role: 'user',
+        })
+        .returning();
 
       if (!user) {
-        throw this.createRpcException(
-            status.INTERNAL,
-            'Failed to create user.',
-        );
+        throw this.createRpcException(status.INTERNAL, 'Failed to create user.');
       }
 
       const sessions = await this.tokenService.createPair(user.id);
@@ -125,8 +121,8 @@ export class AuthService implements OnModuleInit {
     } catch (error) {
       if (this.isUniqueViolation(error)) {
         throw this.createRpcException(
-            status.ALREADY_EXISTS,
-            'User with this email already exists.',
+          status.ALREADY_EXISTS,
+          'User with this email already exists.',
         );
       }
 
@@ -241,12 +237,7 @@ export class AuthService implements OnModuleInit {
   }
 
   private isUniqueViolation(error: unknown) {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      error.code === '23505'
-    );
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
   }
 
   private createRpcException(code: status, details: string) {

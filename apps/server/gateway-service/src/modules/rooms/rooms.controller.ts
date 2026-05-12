@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Inject, OnModuleInit, Param, Post, Query } from '@nestjs/common';
-import { ClientGrpc } from '@nestjs/microservices';
+import type { OnModuleInit} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Query } from '@nestjs/common';
+import type { ClientGrpc } from '@nestjs/microservices';
+import type { CreateInviteRequest, CreateRoomRequest, RoomsGrpcService } from '@web-rtc-nest/contracts';
 import { firstValueFrom } from 'rxjs';
 import { ROOMS_GRPC_CLIENT } from '../../grpc/grpc-clients.module';
-import { CreateInviteRequest, CreateRoomRequest, RoomsGrpcService } from '../../grpc/grpc-contracts';
 
 @Controller('rooms')
 export class RoomsController implements OnModuleInit {
