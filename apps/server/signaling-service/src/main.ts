@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -17,7 +18,7 @@ async function bootstrap() {
   const host = configService.getOrThrow<string>('HOST');
   await app.listen(port, host);
 
-  console.log(`Server is running on http://${host}:${port}`);
+  Logger.log(`Server is running on http://${host}:${port}`, 'Bootstrap');
 }
 
 void bootstrap();

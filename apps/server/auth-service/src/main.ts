@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Transport } from '@nestjs/microservices';
@@ -20,7 +21,7 @@ async function bootstrap() {
 
   await app.init();
   await app.startAllMicroservices();
-  console.log(`Auth service gRPC is running on ${grpcUrl}`);
+  Logger.log(`Auth service gRPC is running on ${grpcUrl}`, 'Bootstrap');
 }
 
 void bootstrap();

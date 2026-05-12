@@ -1,12 +1,12 @@
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
-import { AuthService } from './auth.service';
-import {
+import type { AuthService } from './auth.service';
+import type {
   LoginRequest,
   RefreshSessionRequest,
   RegisterRequest,
   ValidateSessionRequest,
-} from './auth.types';
+} from '@web-rtc-nest/contracts';
 
 @Controller()
 export class AuthController {

@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 import type {
   AuthResponse,
   AuthUser,
@@ -7,7 +7,7 @@ import type {
   RegisterRequest,
   ValidateSessionRequest,
   ValidateSessionResponse,
-} from '@web-rtc-nest/contracts';
+} from './auth.types';
 
 export interface AuthGrpcService {
   register(request: RegisterRequest): Observable<AuthResponse>;

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import type Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { REDIS_CLIENT } from '../redis/redis.module';
 

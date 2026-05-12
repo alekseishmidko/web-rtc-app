@@ -1,12 +1,13 @@
-import { Body, Controller, Get, Inject, OnModuleInit, Param, Patch, Post, Query } from '@nestjs/common';
-import { ClientGrpc } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
-import { NOTIFICATIONS_GRPC_CLIENT } from '../../grpc/grpc-clients.module';
-import {
+import type { OnModuleInit} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
+import type { ClientGrpc } from '@nestjs/microservices';
+import type {
   MarkAsReadRequest,
   NotificationsGrpcService,
   SendNotificationRequest,
-} from '../../grpc/grpc-contracts';
+} from '@web-rtc-nest/contracts';
+import { firstValueFrom } from 'rxjs';
+import { NOTIFICATIONS_GRPC_CLIENT } from '../../grpc/grpc-clients.module';
 
 @Controller('notifications')
 export class NotificationsController implements OnModuleInit {

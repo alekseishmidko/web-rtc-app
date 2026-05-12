@@ -1,5 +1,7 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import type { FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 type Peer = {
   id: string;
