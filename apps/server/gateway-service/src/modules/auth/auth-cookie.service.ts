@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AuthResponse } from '@web-rtc-nest/contracts';
+import { ACCESS_SESSION_ID, REFRESH_SESSION_ID } from '../../shared';
 
 type SameSite = 'lax' | 'strict' | 'none';
 
@@ -45,7 +46,7 @@ export class AuthCookieService {
     // Gateway ставит cookies сам, чтобы session ids не попадали в browser JS.
     // Это снижает риск кражи сессии при XSS: HttpOnly cookie нельзя прочитать
     // через document.cookie.
-    response.cookie('accessSessionId', authResponse.accessSessionId, {
+    response.cookie(ACCESS_SESSION_ID, authResponse.accessSessionId, {
       httpOnly: true,
       maxAge: this.accessCookieMaxAgeMs,
 
@@ -55,7 +56,7 @@ export class AuthCookieService {
       secure: this.secure,
     });
 
-    response.cookie('refreshSessionId', authResponse.refreshSessionId, {
+    response.cookie(REFRESH_SESSION_ID, authResponse.refreshSessionId, {
       httpOnly: true,
       maxAge: this.refreshCookieMaxAgeMs,
 
@@ -68,11 +69,11 @@ export class AuthCookieService {
   }
 
   getAccessSessionId(request: CookieRequest) {
-    return this.getCookieValue(request, 'accessSessionId');
+    return this.getCookieValue(request, ACCESS_SESSION_ID);
   }
 
   getRefreshSessionId(request: CookieRequest) {
-    return this.getCookieValue(request, 'refreshSessionId');
+    return this.getCookieValue(request, REFRESH_SESSION_ID);
   }
 
   private getCookieValue(request: CookieRequest, name: string) {

@@ -7,7 +7,7 @@ export type {
   UserRole,
   ValidateSessionRequest,
   ValidateSessionResponse,
-} from './auth.types';
+} from './types/auth.types';
 export type {
   AuthGrpcService,
   CreateInviteRequest,
@@ -25,4 +25,6 @@ export type {
   RoomsGrpcService,
   SendNotificationRequest,
 } from './grpc-contracts';
-export type { JoinRoomPayload, RoomPeer, SignalPayload } from './signaling.types';
+export type { JoinRoomPayload, RoomPeer, SignalPayload } from './types/signaling.types';
+
+export { REFRESH_SESSION_ID, ACCESS_SESSION_ID } from './constants';
