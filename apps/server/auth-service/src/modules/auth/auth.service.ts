@@ -16,8 +16,8 @@ import type {
   RegisterRequest,
   ValidateSessionResponse,
 } from '@web-rtc-nest/contracts';
-import type { PasswordService } from './password.service';
-import type { TokenService } from '../token/token.service';
+import { TokenService } from '../token/token.service';
+import { PasswordService } from './password.service';
 
 @Injectable()
 export class AuthService implements OnModuleInit {

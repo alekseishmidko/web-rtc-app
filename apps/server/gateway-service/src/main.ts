@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import {GrpcExceptionFilter} from "./shared/grpc-exception.filter";
+import { ACCESS_SESSION_ID, REFRESH_SESSION_ID } from './shared/constants';
+import { GrpcExceptionFilter } from './shared/filters/grpc-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,8 +17,8 @@ async function bootstrap() {
     .setTitle('WebRTC Gateway API')
     .setDescription('HTTP gateway for auth, rooms, notifications and signaling support.')
     .setVersion('0.1.0')
-    .addCookieAuth('accessSessionId')
-    .addCookieAuth('refreshSessionId')
+    .addCookieAuth(ACCESS_SESSION_ID)
+    .addCookieAuth(REFRESH_SESSION_ID)
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, swaggerDocument);
@@ -27,7 +28,6 @@ async function bootstrap() {
 
   await app.listen(port, host);
   Logger.log(`Gateway service is running on http://${host}:${port}/api/docs`, 'Bootstrap');
-
 }
 
 void bootstrap();

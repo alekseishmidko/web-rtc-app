@@ -7,7 +7,7 @@ import type {
   RegisterRequest,
   ValidateSessionRequest,
   ValidateSessionResponse,
-} from './auth.types';
+} from './types/auth.types';
 
 export interface AuthGrpcService {
   register(request: RegisterRequest): Observable<AuthResponse>;

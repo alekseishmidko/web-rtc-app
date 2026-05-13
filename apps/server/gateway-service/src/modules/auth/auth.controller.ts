@@ -5,6 +5,7 @@ import { ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nes
 import type { AuthGrpcService } from '@web-rtc-nest/contracts';
 import { firstValueFrom } from 'rxjs';
 import { AUTH_GRPC_CLIENT } from '../../grpc/grpc-clients.module';
+import { ACCESS_SESSION_ID, REFRESH_SESSION_ID } from '../../shared/constants';
 import { AuthCookieService } from './auth-cookie.service';
 import type { CookieRequest, CookieResponse } from './auth-cookie.service';
 import {
@@ -72,7 +73,7 @@ export class AuthController implements OnModuleInit {
       'Uses refreshSessionId from the HttpOnly cookie first, or from request body as a fallback. Auth-service deletes the old refresh session, creates a new access/refresh pair, and gateway overwrites both HttpOnly cookies. Browser clients should call this endpoint with credentials enabled and an empty body. Body input is mainly for non-browser clients and Swagger testing.',
   })
   @ApiBody({ type: RefreshSessionRequestDto })
-  @ApiCookieAuth('refreshSessionId')
+  @ApiCookieAuth(REFRESH_SESSION_ID)
   @ApiResponse({
     status: 201,
     description:
@@ -101,7 +102,7 @@ export class AuthController implements OnModuleInit {
       'Checks accessSessionId from the HttpOnly cookie first, or from request body as a fallback. This endpoint does not refresh or extend sessions; it only returns whether the current access session is valid and includes the user when valid.',
   })
   @ApiBody({ type: ValidateSessionRequestDto })
-  @ApiCookieAuth('accessSessionId')
+  @ApiCookieAuth(ACCESS_SESSION_ID)
   @ApiResponse({
     status: 201,
     description:
