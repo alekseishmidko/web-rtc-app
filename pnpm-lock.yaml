@@ -140,6 +140,94 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
 
+  apps/server/chat-service:
+    dependencies:
+      '@grpc/grpc-js':
+        specifier: ^1.12.5
+        version: 1.14.3
+      '@grpc/proto-loader':
+        specifier: ^0.7.13
+        version: 0.7.15
+      '@nestjs/common':
+        specifier: ^11.0.0
+        version: 11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.0
+        version: 4.0.4(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.0.0
+        version: 11.1.19(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.19)(@nestjs/platform-express@11.1.19)(@nestjs/websockets@11.1.19)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/microservices':
+        specifier: ^11.0.0
+        version: 11.1.19(@grpc/grpc-js@1.14.3)(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)(@nestjs/websockets@11.1.19)(ioredis@5.10.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.0.0
+        version: 11.1.19(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)
+      '@nestjs/platform-socket.io':
+        specifier: ^11.0.0
+        version: 11.1.19(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/websockets@11.1.19)(rxjs@7.8.2)
+      '@nestjs/websockets':
+        specifier: ^11.0.0
+        version: 11.1.19(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)(@nestjs/platform-socket.io@11.1.19)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@web-rtc-nest/contracts':
+        specifier: workspace:*
+        version: link:../../../packages/contracts
+      drizzle-orm:
+        specifier: ^0.45.0
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)(postgres@3.4.9)
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
+      socket.io:
+        specifier: ^4.8.1
+        version: 4.8.3
+    devDependencies:
+      '@nestjs/cli':
+        specifier: ^11.0.0
+        version: 11.0.21(@types/node@22.19.17)(prettier@3.8.3)
+      '@nestjs/schematics':
+        specifier: ^11.0.0
+        version: 11.1.0(chokidar@4.0.3)(prettier@3.8.3)(typescript@5.9.3)
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.17
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.18.0
+        version: 8.59.1(@typescript-eslint/parser@8.59.1(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.18.0
+        version: 8.59.1(eslint@9.39.4)(typescript@5.9.3)
+      '@web-rtc-nest/eslint-config':
+        specifier: workspace:*
+        version: link:../../../packages/eslint-config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.4
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.4)
+      prettier:
+        specifier: ^3.4.2
+        version: 3.8.3
+      ts-loader:
+        specifier: ^9.5.1
+        version: 9.5.7(typescript@5.9.3)(webpack@5.106.0)
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.19.17)(typescript@5.9.3)
+      tsconfig-paths:
+        specifier: ^4.2.0
+        version: 4.2.0
+
   apps/server/gateway-service:
     dependencies:
       '@grpc/grpc-js':
@@ -178,9 +266,6 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
-      pg:
-        specifier: ^8.20.0
-        version: 8.20.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

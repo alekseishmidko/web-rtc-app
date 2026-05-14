@@ -12,6 +12,7 @@ services:
       AUTH_GRPC_URL: auth-service:50051
       ROOMS_GRPC_URL: room-service:50052
       NOTIFICATIONS_GRPC_URL: notification-service:50053
+      CHAT_GRPC_URL: chat-service:50054
       ACCESS_SESSION_COOKIE_MAX_AGE_SECONDS: 900
       REFRESH_SESSION_COOKIE_MAX_AGE_SECONDS: 604800
       COOKIE_SECURE: "false"
@@ -19,6 +20,7 @@ services:
       - ..:/workspace
     depends_on:
       - auth-service
+      - chat-service
       - kafka
       - postgres
       - redis
@@ -41,6 +43,29 @@ services:
     depends_on:
       - postgres
       - redis
+
+  chat-service:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @web-rtc-nest/chat-service dev"
+    ports:
+      - "5022:5022"
+      - "50054:50054"
+    environment:
+      CI: "true"
+      HOST: 0.0.0.0
+      PORT: 5022
+      GRPC_URL: 0.0.0.0:50054
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: web_rtc
+      DATABASE_PASSWORD: web_rtc
+      DATABASE_NAME: web_rtc
+      DATABASE_SSL: "false"
+    volumes:
+      - ..:/workspace
+    depends_on:
+      - postgres
 
   signaling-service:
     image: node:22-alpine

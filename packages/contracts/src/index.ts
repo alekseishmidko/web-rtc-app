@@ -10,6 +10,9 @@ export type {
 } from './types/auth.types';
 export type {
   AuthGrpcService,
+  ChatGrpcService,
+  ChatListMessagesRequest,
+  ChatListMessagesResponse,
   CreateInviteRequest,
   CreateRoomRequest,
   GetRoomRequest,
@@ -25,6 +28,26 @@ export type {
   RoomsGrpcService,
   SendNotificationRequest,
 } from './grpc-contracts';
+export type {
+  ChatConversation,
+  ChatConversationType,
+  ChatClearHistoryPayload,
+  ChatClearHistoryResponse,
+  ChatDeleteMessagesPayload,
+  ChatDeleteMessagesResponse,
+  ChatDirectCreatePayload,
+  ChatEditMessagePayload,
+  ChatErrorPayload,
+  ChatGroupCreatePayload,
+  ChatJoinPayload,
+  ChatListMessagesPayload,
+  ChatMediaAttachment,
+  ChatMediaAttachmentDraft,
+  ChatMediaStatus,
+  ChatMessage,
+  ChatRoomSyncPayload,
+  ChatSendMessagePayload,
+} from './types/chat.types';
 export type { JoinRoomPayload, RoomPeer, SignalPayload } from './types/signaling.types';
 
 export { REFRESH_SESSION_ID, ACCESS_SESSION_ID } from './constants';

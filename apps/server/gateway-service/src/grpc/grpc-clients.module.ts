@@ -6,6 +6,7 @@ import { grpcTargets, protoRoot } from '../config/grpc.config';
 export const AUTH_GRPC_CLIENT = 'AUTH_GRPC_CLIENT';
 export const ROOMS_GRPC_CLIENT = 'ROOMS_GRPC_CLIENT';
 export const NOTIFICATIONS_GRPC_CLIENT = 'NOTIFICATIONS_GRPC_CLIENT';
+export const CHAT_GRPC_CLIENT = 'CHAT_GRPC_CLIENT';
 
 @Module({
   imports: [
@@ -35,6 +36,15 @@ export const NOTIFICATIONS_GRPC_CLIENT = 'NOTIFICATIONS_GRPC_CLIENT';
           package: 'notifications',
           protoPath: join(protoRoot, 'notifications.proto'),
           url: grpcTargets.notifications,
+        },
+      },
+      {
+        name: CHAT_GRPC_CLIENT,
+        transport: Transport.GRPC,
+        options: {
+          package: 'chat',
+          protoPath: join(protoRoot, 'chat.proto'),
+          url: grpcTargets.chat,
         },
       },
     ]),
