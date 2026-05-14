@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
@@ -11,6 +12,7 @@ import { SharedModule } from './modules/shared/shared.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
+    ChatModule,
     HealthModule,
     NotificationsModule,
     RoomsModule,

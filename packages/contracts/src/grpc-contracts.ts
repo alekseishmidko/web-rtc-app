@@ -8,6 +8,13 @@ import type {
   ValidateSessionRequest,
   ValidateSessionResponse,
 } from './types/auth.types';
+import type {
+  ChatClearHistoryPayload,
+  ChatClearHistoryResponse,
+  ChatDeleteMessagesPayload,
+  ChatDeleteMessagesResponse,
+  ChatMessage,
+} from './types/chat.types';
 
 export interface AuthGrpcService {
   register(request: RegisterRequest): Observable<AuthResponse>;
@@ -109,4 +116,21 @@ export interface NotificationsGrpcService {
   sendNotification(request: SendNotificationRequest): Observable<NotificationResponse>;
   listNotifications(request: ListNotificationsRequest): Observable<ListNotificationsResponse>;
   markAsRead(request: MarkAsReadRequest): Observable<NotificationResponse>;
+}
+
+export type ChatListMessagesRequest = {
+  conversationId: string;
+  userId: string;
+  limit?: number;
+  beforeMessageId?: string;
+};
+
+export type ChatListMessagesResponse = {
+  messages: ChatMessage[];
+};
+
+export interface ChatGrpcService {
+  listMessages(request: ChatListMessagesRequest): Observable<ChatListMessagesResponse>;
+  deleteMessages(request: ChatDeleteMessagesPayload): Observable<ChatDeleteMessagesResponse>;
+  clearHistory(request: ChatClearHistoryPayload): Observable<ChatClearHistoryResponse>;
 }

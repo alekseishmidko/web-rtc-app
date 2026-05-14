@@ -4,6 +4,7 @@ pnpm-монорепа с несколькими приложениями:
 
 - `apps/server/gateway-service` - HTTP/gRPC gateway и Socket.IO signaling;
 - `apps/server/auth-service` - gRPC auth-сервис с Postgres, Drizzle ORM и Redis-сессиями;
+- `apps/server/chat-service` - Socket.IO chat-сервис с Postgres, Drizzle ORM, direct/group/room чатами и media placeholders;
 - `apps/server/signaling-service` - отдельный NestJS signaling-сервер;
 - `apps/client` - React/Vite клиент видеокомнаты.
 
@@ -19,6 +20,8 @@ pnpm-монорепа с несколькими приложениями:
 - `apps/server/gateway-service/src/modules/signaling/signaling.gateway.ts` - Socket.IO gateway для комнат и WebRTC-сигналинга.
 - `apps/server/gateway-service/src/modules/signaling/signaling.service.ts` - состояние комнат и участников.
 - `apps/server/auth-service/src/modules/auth` - регистрация, логин и проверка Redis-сессий.
+- `apps/server/chat-service/src/chat` - Socket.IO gateway и бизнес-логика чатов.
+- `apps/server/chat-service/src/database/chat.schema.ts` - Drizzle-схема direct/group/room чатов, сообщений и media placeholders.
 - `apps/client/src/App.tsx` - React-компонент с логикой комнаты и WebRTC.
 - `apps/client/src/styles.css` - стили интерфейса.
 - `apps/client/vite.config.ts` - конфигурация Vite.
@@ -56,6 +59,7 @@ pnpm dev
 ```bash
 pnpm dev:signaling
 pnpm dev:auth
+pnpm dev:chat
 pnpm dev:gateway
 pnpm dev:client
 ```
@@ -93,6 +97,17 @@ pnpm start
 ```bash
 pnpm preview:client
 ```
+
+Chat-service запускается отдельно через:
+
+```bash
+pnpm dev:chat
+pnpm build:chat
+pnpm start:chat
+```
+
+Документация по событиям и payload находится в
+`apps/server/chat-service/README.md`.
 
 ## Ограничения
 
