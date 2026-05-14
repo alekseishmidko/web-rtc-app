@@ -4,10 +4,11 @@ import { status } from '@grpc/grpc-js';
 import { RpcException } from '@nestjs/microservices';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import type { AuthDatabase } from '../../database/database.module';
-import { DATABASE } from '../../database/database.module';
+
 import type { UserRecord } from '../../database/user.schema';
 import { users } from '../../database/user.schema';
+import type { AuthDatabase } from '../../database/database.module';
+import { DATABASE } from '../../database/database.module';
 import type {
   AuthResponse,
   AuthUser,
