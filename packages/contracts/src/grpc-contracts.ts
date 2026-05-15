@@ -11,9 +11,15 @@ import type {
 import type {
   ChatClearHistoryPayload,
   ChatClearHistoryResponse,
+  ChatConversation,
   ChatDeleteMessagesPayload,
   ChatDeleteMessagesResponse,
+  ChatDirectCreatePayload,
+  ChatEditMessagePayload,
+  ChatGroupCreatePayload,
   ChatMessage,
+  ChatRoomSyncPayload,
+  ChatSendMessagePayload,
 } from './types/chat.types';
 
 export interface AuthGrpcService {
@@ -130,7 +136,13 @@ export type ChatListMessagesResponse = {
 };
 
 export interface ChatGrpcService {
+  createDirectChat(request: ChatDirectCreatePayload): Observable<ChatConversation>;
+  createGroupChat(request: ChatGroupCreatePayload): Observable<ChatConversation>;
+  syncRoomChat(request: ChatRoomSyncPayload): Observable<ChatConversation>;
+  sendMessage(request: ChatSendMessagePayload): Observable<ChatMessage>;
+  editMessage(request: ChatEditMessagePayload): Observable<ChatMessage>;
   listMessages(request: ChatListMessagesRequest): Observable<ChatListMessagesResponse>;
   deleteMessages(request: ChatDeleteMessagesPayload): Observable<ChatDeleteMessagesResponse>;
   clearHistory(request: ChatClearHistoryPayload): Observable<ChatClearHistoryResponse>;
+  getParticipantIds(request: { conversationId: string }): Observable<{ participantIds: string[] }>;
 }

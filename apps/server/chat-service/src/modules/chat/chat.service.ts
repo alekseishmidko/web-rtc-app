@@ -169,7 +169,7 @@ export class ChatService implements OnModuleInit {
       .returning();
 
     if (!conversation) {
-      throw new Error('Failed to create direct chat.');
+      throw this.createRpcException(status.INTERNAL, 'Failed to create direct chat.');
     }
 
     await this.addParticipants(conversation.id, [initiatorId, participantId]);
@@ -191,7 +191,10 @@ export class ChatService implements OnModuleInit {
     const participantIds = this.uniqueIds([creatorId, ...payload.participantIds]);
 
     if (participantIds.length < 2) {
-      throw new Error('Group chat requires at least two participants.');
+      throw this.createRpcException(
+        status.INVALID_ARGUMENT,
+        'Group chat requires at least two participants.',
+      );
     }
 
     const [conversation] = await this.database
@@ -205,7 +208,7 @@ export class ChatService implements OnModuleInit {
       .returning();
 
     if (!conversation) {
-      throw new Error('Failed to create group chat.');
+      throw this.createRpcException(status.INTERNAL, 'Failed to create group chat.');
     }
 
     await this.addParticipants(conversation.id, participantIds);
@@ -226,7 +229,7 @@ export class ChatService implements OnModuleInit {
     const roomId = payload.roomId?.trim();
 
     if (!roomId) {
-      throw new Error('roomId is required.');
+      throw this.createRpcException(status.INVALID_ARGUMENT, 'roomId is required.');
     }
 
     const existing = await this.database.query.chatConversations.findFirst({
@@ -255,7 +258,7 @@ export class ChatService implements OnModuleInit {
       .returning();
 
     if (!conversation) {
-      throw new Error('Failed to create room chat.');
+      throw this.createRpcException(status.INTERNAL, 'Failed to create room chat.');
     }
 
     await this.addParticipants(
@@ -281,7 +284,10 @@ export class ChatService implements OnModuleInit {
     const text = payload.text?.trim();
 
     if (!text && attachments.length === 0) {
-      throw new Error('Message text or attachment is required.');
+      throw this.createRpcException(
+        status.INVALID_ARGUMENT,
+        'Message text or attachment is required.',
+      );
     }
 
     await this.ensureParticipant(conversationId, senderId);
@@ -299,7 +305,7 @@ export class ChatService implements OnModuleInit {
       .returning();
 
     if (!message) {
-      throw new Error('Failed to create message.');
+      throw this.createRpcException(status.INTERNAL, 'Failed to create message.');
     }
 
     const savedAttachments = await this.insertAttachments(message.id, attachments);
@@ -322,7 +328,10 @@ export class ChatService implements OnModuleInit {
     const text = payload.text?.trim();
 
     if (!text && attachments.length === 0) {
-      throw new Error('Message text or attachment is required.');
+      throw this.createRpcException(
+        status.INVALID_ARGUMENT,
+        'Message text or attachment is required.',
+      );
     }
 
     const existing = await this.database.query.chatMessages.findFirst({
@@ -330,11 +339,11 @@ export class ChatService implements OnModuleInit {
     });
 
     if (!existing) {
-      throw new Error('Message not found.');
+      throw this.createRpcException(status.NOT_FOUND, 'Message not found.');
     }
 
     if (existing.senderId !== editorId) {
-      throw new Error('Only sender can edit message.');
+      throw this.createRpcException(status.PERMISSION_DENIED, 'Only sender can edit message.');
     }
 
     const [message] = await this.database
@@ -344,7 +353,7 @@ export class ChatService implements OnModuleInit {
       .returning();
 
     if (!message) {
-      throw new Error('Failed to edit message.');
+      throw this.createRpcException(status.INTERNAL, 'Failed to edit message.');
     }
 
     if (payload.attachments) {
@@ -506,10 +515,11 @@ export class ChatService implements OnModuleInit {
    * подписаться на realtime-события чужого чата.
    */
   async getParticipantIds(conversationId: string) {
+    const validConversationId = this.requireGrpcUuid(conversationId, 'conversationId');
     const rows = await this.database
       .select({ userId: chatParticipants.userId })
       .from(chatParticipants)
-      .where(eq(chatParticipants.conversationId, conversationId));
+      .where(eq(chatParticipants.conversationId, validConversationId));
 
     return rows.map((row) => row.userId);
   }
@@ -713,15 +723,15 @@ export class ChatService implements OnModuleInit {
   /**
    * Общая UUID-валидация для payload-полей.
    *
-   * Ошибки из этого метода уходят наружу как обычные `Error`: Gateway
-   * превращает их в `chat:error`, а gRPC controller возвращает ошибку вызова.
+   * Ошибки из этого метода уходят наружу как canonical gRPC errors. Gateway
+   * превращает их в HTTP-ответы или `chat:error` для Socket.IO.
    */
   private requireUuid(value: string | undefined, fieldName: string) {
     if (
       !value ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
     ) {
-      throw new Error(`${fieldName} must be a valid uuid.`);
+      throw this.createRpcException(status.INVALID_ARGUMENT, `${fieldName} must be a valid uuid.`);
     }
 
     return value;
