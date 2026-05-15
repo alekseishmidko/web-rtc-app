@@ -3,9 +3,56 @@ syntax = "proto3";
 package chat;
 
 service ChatService {
+  rpc CreateDirectChat (CreateDirectChatRequest) returns (ChatConversation);
+  rpc CreateGroupChat (CreateGroupChatRequest) returns (ChatConversation);
+  rpc SyncRoomChat (SyncRoomChatRequest) returns (ChatConversation);
+  rpc SendMessage (SendMessageRequest) returns (ChatMessage);
+  rpc EditMessage (EditMessageRequest) returns (ChatMessage);
   rpc ListMessages (ListMessagesRequest) returns (ListMessagesResponse);
   rpc DeleteMessages (DeleteMessagesRequest) returns (DeleteMessagesResponse);
   rpc ClearHistory (ClearHistoryRequest) returns (ClearHistoryResponse);
+  rpc GetParticipantIds (GetParticipantIdsRequest) returns (GetParticipantIdsResponse);
+}
+
+message CreateDirectChatRequest {
+  string initiator_id = 1;
+  string participant_id = 2;
+}
+
+message CreateGroupChatRequest {
+  string creator_id = 1;
+  repeated string participant_ids = 2;
+  string title = 3;
+}
+
+message SyncRoomChatRequest {
+  string room_id = 1;
+  string user_id = 2;
+  repeated string participant_ids = 3;
+  string title = 4;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string sender_id = 2;
+  string text = 3;
+  repeated ChatMediaAttachmentDraft attachments = 4;
+}
+
+message EditMessageRequest {
+  string message_id = 1;
+  string editor_id = 2;
+  string text = 3;
+  repeated ChatMediaAttachmentDraft attachments = 4;
+  bool attachments_provided = 5;
+}
+
+message GetParticipantIdsRequest {
+  string conversation_id = 1;
+}
+
+message GetParticipantIdsResponse {
+  repeated string participant_ids = 1;
 }
 
 message ListMessagesRequest {
@@ -38,6 +85,16 @@ message ClearHistoryResponse {
   int32 deleted_count = 2;
 }
 
+message ChatConversation {
+  string id = 1;
+  string type = 2;
+  string title = 3;
+  string room_id = 4;
+  string created_by = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
 message ChatMessage {
   string id = 1;
   string conversation_id = 2;
@@ -47,6 +104,16 @@ message ChatMessage {
   string deleted_at = 6;
   string created_at = 7;
   repeated ChatMediaAttachment attachments = 8;
+}
+
+message ChatMediaAttachmentDraft {
+  string media_id = 1;
+  string upload_id = 2;
+  string file_name = 3;
+  string mime_type = 4;
+  int64 size_bytes = 5;
+  string status = 6;
+  string metadata_json = 7;
 }
 
 message ChatMediaAttachment {

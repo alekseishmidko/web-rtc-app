@@ -1,7 +1,7 @@
-import type {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-} from '@nestjs/websockets';
+import type { OnModuleInit } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import type { ClientGrpc } from '@nestjs/microservices';
+import type { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import {
   ConnectedSocket,
   MessageBody,
@@ -9,30 +9,55 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import type { Server, Socket } from 'socket.io';
 import type {
   ChatDirectCreatePayload,
   ChatEditMessagePayload,
+  ChatGrpcService,
   ChatGroupCreatePayload,
   ChatJoinPayload,
+  ChatMediaAttachmentDraft,
   ChatRoomSyncPayload,
   ChatSendMessagePayload,
 } from '@web-rtc-nest/contracts';
+import { firstValueFrom } from 'rxjs';
+import type { Server, Socket } from 'socket.io';
+import { CHAT_GRPC_CLIENT } from '../../grpc/grpc-clients.module';
 
-import { ChatService } from './chat.service';
+type GrpcChatMediaAttachmentDraft = Omit<ChatMediaAttachmentDraft, 'metadata'> & {
+  metadataJson?: string;
+};
+
+type GrpcChatSendMessagePayload = Omit<ChatSendMessagePayload, 'attachments'> & {
+  attachments?: GrpcChatMediaAttachmentDraft[];
+};
+
+type GrpcChatEditMessagePayload = Omit<ChatEditMessagePayload, 'attachments'> & {
+  attachments?: GrpcChatMediaAttachmentDraft[];
+  attachmentsProvided: boolean;
+};
+
+type GrpcError = {
+  details?: string;
+  message?: string;
+};
 
 @WebSocketGateway({
   cors: {
     origin: '*',
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnModuleInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private readonly server!: Server;
 
+  private chatService!: ChatGrpcService;
   private readonly roomsBySocket = new Map<string, Set<string>>();
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(@Inject(CHAT_GRPC_CLIENT) private readonly client: ClientGrpc) {}
+
+  onModuleInit() {
+    this.chatService = this.client.getService<ChatGrpcService>('ChatService');
+  }
 
   handleConnection(socket: Socket) {
     // Клиент получает socket id только как технический идентификатор соединения.
@@ -55,14 +80,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('chat:join')
-  async joinChat(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ChatJoinPayload,
-  ) {
+  async joinChat(@ConnectedSocket() socket: Socket, @MessageBody() payload: ChatJoinPayload) {
     try {
-      // Перед подпиской на online-события проверяем, что пользователь уже
-      // записан участником разговора в БД.
-      const participantIds = await this.chatService.getParticipantIds(payload.conversationId);
+      // Gateway держит публичный Socket.IO transport, а chat-service остается
+      // внутренним источником истины для участников, сообщений и истории.
+      const { participantIds } = await firstValueFrom(
+        this.chatService.getParticipantIds({ conversationId: payload.conversationId }),
+      );
 
       if (!participantIds.includes(payload.userId)) {
         socket.emit('chat:error', { message: 'User is not a chat participant.' });
@@ -71,7 +95,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Socket.IO room здесь используется как online-канал доставки сообщений.
       // При нескольких replica нужен Redis adapter, иначе комнаты будут жить
-      // только внутри одного процесса.
+      // только внутри одного gateway процесса.
       const room = this.getSocketRoom(payload.conversationId);
       await socket.join(room);
       this.trackSocketRoom(socket.id, room);
@@ -98,7 +122,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatDirectCreatePayload,
   ) {
     try {
-      const conversation = await this.chatService.createDirectChat(payload);
+      const conversation = await firstValueFrom(this.chatService.createDirectChat(payload));
       socket.emit('chat:conversation', conversation);
     } catch (error) {
       this.emitError(socket, error);
@@ -111,7 +135,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatGroupCreatePayload,
   ) {
     try {
-      const conversation = await this.chatService.createGroupChat(payload);
+      const conversation = await firstValueFrom(this.chatService.createGroupChat(payload));
       socket.emit('chat:conversation', conversation);
     } catch (error) {
       this.emitError(socket, error);
@@ -124,9 +148,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatRoomSyncPayload,
   ) {
     try {
-      // Это точка связи с WebRTC-комнатой: signaling/video-service может
-      // передать roomId, а chat-service создаст или вернет связанный чат.
-      const conversation = await this.chatService.syncRoomChat(payload);
+      const conversation = await firstValueFrom(this.chatService.syncRoomChat(payload));
       socket.emit('chat:conversation', conversation);
     } catch (error) {
       this.emitError(socket, error);
@@ -139,9 +161,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatSendMessagePayload,
   ) {
     try {
-      const message = await this.chatService.sendMessage(payload);
-      // Источник истины - Postgres. В WebSocket отправляем уже сохраненное
-      // сообщение, чтобы все клиенты получили один и тот же id/timestamps.
+      const message = await firstValueFrom(
+        this.chatService.sendMessage(this.toGrpcSendMessagePayload(payload)),
+      );
+
       this.server.to(this.getSocketRoom(message.conversationId)).emit('chat:message', message);
       socket.emit('chat:message:sent', message);
     } catch (error) {
@@ -155,13 +178,40 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatEditMessagePayload,
   ) {
     try {
-      const message = await this.chatService.editMessage(payload);
+      const message = await firstValueFrom(
+        this.chatService.editMessage(this.toGrpcEditMessagePayload(payload)),
+      );
+
       this.server
         .to(this.getSocketRoom(message.conversationId))
         .emit('chat:message:edited', message);
     } catch (error) {
       this.emitError(socket, error);
     }
+  }
+
+  private toGrpcSendMessagePayload(payload: ChatSendMessagePayload): GrpcChatSendMessagePayload {
+    return {
+      ...payload,
+      attachments: this.toGrpcAttachmentDrafts(payload.attachments),
+    };
+  }
+
+  private toGrpcEditMessagePayload(payload: ChatEditMessagePayload): GrpcChatEditMessagePayload {
+    return {
+      ...payload,
+      attachments: this.toGrpcAttachmentDrafts(payload.attachments),
+      attachmentsProvided: payload.attachments !== undefined,
+    };
+  }
+
+  private toGrpcAttachmentDrafts(
+    attachments: ChatMediaAttachmentDraft[] | undefined,
+  ): GrpcChatMediaAttachmentDraft[] | undefined {
+    return attachments?.map(({ metadata, ...attachment }) => ({
+      ...attachment,
+      metadataJson: metadata ? JSON.stringify(metadata) : undefined,
+    }));
   }
 
   private getSocketRoom(conversationId: string) {
@@ -176,8 +226,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private emitError(socket: Socket, error: unknown) {
+    const grpcError = this.toGrpcError(error);
+
     socket.emit('chat:error', {
-      message: error instanceof Error ? error.message : 'Unexpected chat error.',
+      message: grpcError?.details ?? grpcError?.message ?? 'Unexpected chat error.',
     });
+  }
+
+  private toGrpcError(error: unknown): GrpcError | undefined {
+    if (!error || typeof error !== 'object') {
+      return undefined;
+    }
+
+    return error as GrpcError;
   }
 }
