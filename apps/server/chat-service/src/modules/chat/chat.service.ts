@@ -1,4 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { status } from '@grpc/grpc-js';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { and, asc, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -18,24 +20,32 @@ import type {
   ChatSendMessagePayload,
 } from '@web-rtc-nest/contracts';
 
-import { DATABASE } from '../database/database.module';
-import type { ChatDatabase } from '../database/database.module';
+import { DATABASE } from '../../database/database.module';
+import type { ChatDatabase } from '../../database/database.module';
 import {
   chatConversations,
   chatMediaAttachments,
   chatMessages,
   chatParticipants,
-} from '../database/chat.schema';
+} from '../../database/chat.schema';
 import type {
   ChatConversationRecord,
   ChatMediaAttachmentRecord,
   ChatMessageRecord,
-} from '../database/chat.schema';
+} from '../../database/chat.schema';
 
 @Injectable()
-export class ChatService {
+export class ChatService implements OnModuleInit {
   constructor(@Inject(DATABASE) private readonly database: ChatDatabase) {}
 
+  /**
+   * Поднимает минимальную chat-схему при старте сервиса.
+   *
+   * Это dev-friendly bootstrap: сервис сам создает enum-типы, таблицы и индексы,
+   * чтобы локально можно было стартовать без отдельного шага миграций. В
+   * production эту ответственность лучше вынести в Drizzle migrations, иначе
+   * изменение схемы будет сложнее контролировать и откатывать.
+   */
   async onModuleInit() {
     // В dev-режиме сервис сам поднимает минимальную схему, как auth-service.
     // Для production это лучше заменить на версионируемые миграции Drizzle.
@@ -126,6 +136,14 @@ export class ChatService {
     `);
   }
 
+  /**
+   * Создает direct conversation для пары пользователей или возвращает уже
+   * существующий.
+   *
+   * Важное правило: direct chat должен быть идемпотентным. Поэтому ключ строится
+   * из двух UUID в отсортированном порядке. Вызовы A->B и B->A попадут в один
+   * `directKey` и не создадут два разных чата для одной пары.
+   */
   async createDirectChat(payload: ChatDirectCreatePayload) {
     const initiatorId = this.requireUuid(payload.initiatorId, 'initiatorId');
     const participantId = this.requireUuid(payload.participantId, 'participantId');
@@ -159,6 +177,13 @@ export class ChatService {
     return this.toConversation(conversation);
   }
 
+  /**
+   * Создает group conversation и записывает участников.
+   *
+   * Создатель всегда включается в список участников независимо от того, передал
+   * ли его клиент в `participantIds`. Группа из одного человека не создается:
+   * для личного разговора есть `createDirectChat`.
+   */
   async createGroupChat(payload: ChatGroupCreatePayload) {
     const creatorId = this.requireUuid(payload.creatorId, 'creatorId');
     // Создатель всегда становится участником, даже если клиент не передал его
@@ -188,6 +213,14 @@ export class ChatService {
     return this.toConversation(conversation);
   }
 
+  /**
+   * Синхронизирует chat conversation с WebRTC-комнатой.
+   *
+   * `roomId` является стабильной связкой между video room и chat room. Если чат
+   * для комнаты уже есть, метод только добавляет новых участников и не удаляет
+   * старых: так пользователи не теряют доступ к уже созданной истории из-за
+   * изменений состава звонка.
+   */
   async syncRoomChat(payload: ChatRoomSyncPayload) {
     const userId = this.requireUuid(payload.userId, 'userId');
     const roomId = payload.roomId?.trim();
@@ -203,7 +236,10 @@ export class ChatService {
     if (existing) {
       // Состав видеокомнаты может меняться. Sync только добавляет недостающих
       // участников и не удаляет старых, чтобы не потерять историю доступа.
-      await this.addParticipants(existing.id, this.uniqueIds([userId, ...(payload.participantIds ?? [])]));
+      await this.addParticipants(
+        existing.id,
+        this.uniqueIds([userId, ...(payload.participantIds ?? [])]),
+      );
       return this.toConversation(existing);
     }
 
@@ -222,11 +258,22 @@ export class ChatService {
       throw new Error('Failed to create room chat.');
     }
 
-    await this.addParticipants(conversation.id, this.uniqueIds([userId, ...(payload.participantIds ?? [])]));
+    await this.addParticipants(
+      conversation.id,
+      this.uniqueIds([userId, ...(payload.participantIds ?? [])]),
+    );
 
     return this.toConversation(conversation);
   }
 
+  /**
+   * Сохраняет новое сообщение и возвращает server-side представление.
+   *
+   * Метод сначала проверяет, что отправитель является участником conversation,
+   * затем пишет сообщение в Postgres и только после этого вызывающая сторона
+   * может рассылать его через Socket.IO. Благодаря этому все клиенты получают
+   * один и тот же `id`, `createdAt` и список вложений из источника истины.
+   */
   async sendMessage(payload: ChatSendMessagePayload) {
     const conversationId = this.requireUuid(payload.conversationId, 'conversationId');
     const senderId = this.requireUuid(payload.senderId, 'senderId');
@@ -261,6 +308,13 @@ export class ChatService {
     return this.toMessage(message, savedAttachments);
   }
 
+  /**
+   * Редактирует существующее сообщение.
+   *
+   * Редактировать может только отправитель (`editorId === senderId`). Если в
+   * payload есть поле `attachments`, текущий список вложений заменяется целиком.
+   * Если поля `attachments` нет, старые вложения сохраняются без изменений.
+   */
   async editMessage(payload: ChatEditMessagePayload) {
     const messageId = this.requireUuid(payload.messageId, 'messageId');
     const editorId = this.requireUuid(payload.editorId, 'editorId');
@@ -308,9 +362,17 @@ export class ChatService {
     return this.toMessage(message, savedAttachments.get(messageId) ?? []);
   }
 
+  /**
+   * Возвращает страницу истории сообщений в хронологическом порядке.
+   *
+   * Пагинация работает назад от `beforeMessageId`: сначала из БД берутся более
+   * старые сообщения в порядке "новые -> старые", затем массив разворачивается,
+   * чтобы клиент получил привычный порядок "старые -> новые". Soft-deleted
+   * сообщения (`deletedAt != null`) в историю не попадают.
+   */
   async listMessages(payload: ChatListMessagesPayload) {
-    const conversationId = this.requireUuid(payload.conversationId, 'conversationId');
-    const userId = this.requireUuid(payload.userId, 'userId');
+    const conversationId = this.requireGrpcUuid(payload.conversationId, 'conversationId');
+    const userId = this.requireGrpcUuid(payload.userId, 'userId');
     const requestedLimit = payload.limit && payload.limit > 0 ? payload.limit : 50;
     const limit = Math.min(Math.max(requestedLimit, 1), 100);
 
@@ -318,7 +380,10 @@ export class ChatService {
 
     const beforeMessage = payload.beforeMessageId
       ? await this.database.query.chatMessages.findFirst({
-          where: eq(chatMessages.id, this.requireUuid(payload.beforeMessageId, 'beforeMessageId')),
+          where: eq(
+            chatMessages.id,
+            this.requireGrpcUuid(payload.beforeMessageId, 'beforeMessageId'),
+          ),
         })
       : undefined;
 
@@ -332,10 +397,7 @@ export class ChatService {
               lt(chatMessages.createdAt, beforeMessage.createdAt),
               isNull(chatMessages.deletedAt),
             )
-          : and(
-              eq(chatMessages.conversationId, conversationId),
-              isNull(chatMessages.deletedAt),
-            ),
+          : and(eq(chatMessages.conversationId, conversationId), isNull(chatMessages.deletedAt)),
       )
       .orderBy(desc(chatMessages.createdAt))
       .limit(limit);
@@ -343,14 +405,24 @@ export class ChatService {
     // Из БД читаем новые сообщения первыми для эффективной пагинации назад,
     // а клиенту возвращаем в хронологическом порядке.
     const orderedRows = rows.reverse();
-    const attachments = await this.getAttachmentsByMessageIds(orderedRows.map((message) => message.id));
+    const attachments = await this.getAttachmentsByMessageIds(
+      orderedRows.map((message) => message.id),
+    );
 
     return orderedRows.map((message) => this.toMessage(message, attachments.get(message.id) ?? []));
   }
 
+  /**
+   * Помечает сообщения удаленными без физического удаления строк.
+   *
+   * Сейчас нет ролей модераторов, поэтому пользователь может удалить только свои
+   * сообщения. Чужие `messageIds` не приводят к ошибке, а просто не попадают в
+   * `deletedMessageIds`. Такой soft-delete сохраняет историю аудита и связи с
+   * вложениями, но скрывает сообщения из `listMessages`.
+   */
   async deleteMessages(payload: ChatDeleteMessagesPayload): Promise<ChatDeleteMessagesResponse> {
-    const userId = this.requireUuid(payload.userId, 'userId');
-    const messageIds = this.uniqueMessageIds(payload.messageIds);
+    const userId = this.requireGrpcUuid(payload.userId, 'userId');
+    const messageIds = this.uniqueGrpcMessageIds(payload.messageIds);
 
     if (messageIds.length === 0) {
       return { deletedMessageIds: [] };
@@ -389,16 +461,25 @@ export class ChatService {
       .where(inArray(chatMessages.id, ownMessageIds))
       .returning({ id: chatMessages.id, conversationId: chatMessages.conversationId });
 
-    for (const conversationId of new Set(deletedMessages.map((message) => message.conversationId))) {
+    for (const conversationId of new Set(
+      deletedMessages.map((message) => message.conversationId),
+    )) {
       await this.touchConversation(conversationId);
     }
 
     return { deletedMessageIds: deletedMessages.map((message) => message.id) };
   }
 
+  /**
+   * Очищает историю conversation для всех участников.
+   *
+   * Это не персональная очистка "только для меня": метод выставляет `deletedAt`
+   * всем сообщениям conversation. Если понадобится user-specific очистка,
+   * нужна отдельная таблица видимости сообщений по пользователю.
+   */
   async clearHistory(payload: ChatClearHistoryPayload): Promise<ChatClearHistoryResponse> {
-    const conversationId = this.requireUuid(payload.conversationId, 'conversationId');
-    const userId = this.requireUuid(payload.userId, 'userId');
+    const conversationId = this.requireGrpcUuid(payload.conversationId, 'conversationId');
+    const userId = this.requireGrpcUuid(payload.userId, 'userId');
 
     await this.ensureParticipant(conversationId, userId);
 
@@ -418,6 +499,12 @@ export class ChatService {
     };
   }
 
+  /**
+   * Возвращает участников conversation.
+   *
+   * Gateway использует этот метод перед `chat:join`, чтобы socket не мог
+   * подписаться на realtime-события чужого чата.
+   */
   async getParticipantIds(conversationId: string) {
     const rows = await this.database
       .select({ userId: chatParticipants.userId })
@@ -427,6 +514,14 @@ export class ChatService {
     return rows.map((row) => row.userId);
   }
 
+  /**
+   * Добавляет участников без ошибки на уже существующих парах
+   * `(conversationId, userId)`.
+   *
+   * Используется в create/sync методах. `onConflictDoNothing()` нужен для
+   * повторных sync-запросов и для случаев, когда создатель уже есть в списке
+   * участников.
+   */
   private async addParticipants(conversationId: string, userIds: string[]) {
     // onConflictDoNothing позволяет безопасно вызывать sync несколько раз:
     // существующие участники не создадут ошибку уникального индекса.
@@ -439,12 +534,15 @@ export class ChatService {
       return;
     }
 
-    await this.database
-      .insert(chatParticipants)
-      .values(values)
-      .onConflictDoNothing();
+    await this.database.insert(chatParticipants).values(values).onConflictDoNothing();
   }
 
+  /**
+   * Единая проверка доступа к conversation.
+   *
+   * Пока Socket.IO payload сам приносит `userId`, поэтому все операции чтения и
+   * изменения сообщений обязаны дополнительно сверяться с `chat_participants`.
+   */
   private async ensureParticipant(conversationId: string, userId: string) {
     // Все операции с сообщениями проходят через проверку участника. Позже эту
     // проверку можно заменить на auth context из gateway/session.
@@ -456,10 +554,17 @@ export class ChatService {
     });
 
     if (!participant) {
-      throw new Error('User is not a chat participant.');
+      throw this.createRpcException(status.PERMISSION_DENIED, 'User is not a chat participant.');
     }
   }
 
+  /**
+   * Сохраняет metadata вложений для сообщения.
+   *
+   * Сервис не принимает и не хранит байты файлов. Здесь фиксируются только
+   * идентификаторы upload/media и свойства файла, чтобы будущий media-service
+   * мог связать их с реальным объектом хранения.
+   */
   private async insertAttachments(messageId: string, attachments: ChatMediaAttachmentDraft[]) {
     if (attachments.length === 0) {
       return [];
@@ -485,6 +590,12 @@ export class ChatService {
     return rows;
   }
 
+  /**
+   * Загружает вложения пачкой и группирует их по messageId.
+   *
+   * Это защищает `listMessages` от N+1 запросов: история сообщений делает один
+   * запрос за сообщениями и один запрос за всеми их вложениями.
+   */
   private async getAttachmentsByMessageIds(messageIds: string[]) {
     // Загружаем вложения пачкой, чтобы список сообщений не делал отдельный
     // запрос для каждого message.
@@ -509,6 +620,12 @@ export class ChatService {
     return result;
   }
 
+  /**
+   * Обновляет `updatedAt` conversation после изменения сообщений.
+   *
+   * По этому полю можно сортировать список чатов по последней активности без
+   * отдельного запроса к `chat_messages`.
+   */
   private async touchConversation(conversationId: string) {
     await this.database
       .update(chatConversations)
@@ -516,6 +633,12 @@ export class ChatService {
       .where(eq(chatConversations.id, conversationId));
   }
 
+  /**
+   * Преобразует Drizzle row conversation в публичный контракт.
+   *
+   * В API не отдаём nullable-поля как `null`: опциональные значения становятся
+   * `undefined`, а даты приводятся к ISO-строкам.
+   */
   private toConversation(conversation: ChatConversationRecord): ChatConversation {
     return {
       id: conversation.id,
@@ -528,6 +651,9 @@ export class ChatService {
     };
   }
 
+  /**
+   * Преобразует Drizzle row message и уже загруженные вложения в ChatMessage.
+   */
   private toMessage(
     message: ChatMessageRecord,
     attachments: ChatMediaAttachmentRecord[],
@@ -544,6 +670,9 @@ export class ChatService {
     };
   }
 
+  /**
+   * Преобразует Drizzle row attachment в контрактный объект вложения.
+   */
   private toAttachment(attachment: ChatMediaAttachmentRecord): ChatMediaAttachment {
     return {
       id: attachment.id,
@@ -559,19 +688,59 @@ export class ChatService {
     };
   }
 
+  /**
+   * Валидирует список user id и удаляет дубли с сохранением первого появления.
+   */
   private uniqueIds(ids: string[]) {
     return Array.from(new Set(ids.map((id) => this.requireUuid(id, 'userId'))));
   }
 
+  /**
+   * Валидирует список message id и удаляет дубли с сохранением первого появления.
+   */
   private uniqueMessageIds(ids: string[]) {
     return Array.from(new Set(ids.map((id) => this.requireUuid(id, 'messageId'))));
   }
 
+  private uniqueGrpcMessageIds(ids: string[] | undefined) {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
+    return Array.from(new Set(ids.map((id) => this.requireGrpcUuid(id, 'messageId'))));
+  }
+
+  /**
+   * Общая UUID-валидация для payload-полей.
+   *
+   * Ошибки из этого метода уходят наружу как обычные `Error`: Gateway
+   * превращает их в `chat:error`, а gRPC controller возвращает ошибку вызова.
+   */
   private requireUuid(value: string | undefined, fieldName: string) {
-    if (!value || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+    if (
+      !value ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ) {
       throw new Error(`${fieldName} must be a valid uuid.`);
     }
 
     return value;
+  }
+
+  private requireGrpcUuid(value: string | undefined, fieldName: string) {
+    if (
+      !value ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ) {
+      throw this.createRpcException(status.INVALID_ARGUMENT, `${fieldName} must be a valid uuid.`);
+    }
+
+    return value;
+  }
+
+  private createRpcException(code: status, details: string) {
+    // gRPC клиенты ожидают canonical status code + details. Plain string в
+    // RpcException теряет машинно-читаемый код ошибки.
+    return new RpcException({ code, details });
   }
 }
