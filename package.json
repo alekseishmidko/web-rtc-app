@@ -3,7 +3,6 @@
   "private": true,
   "packageManager": "pnpm@10.26.2",
   "scripts": {
-    "dev": "pnpm --filter @web-rtc-nest/gateway-service dev",
     "dev:auth": "pnpm --filter @web-rtc-nest/auth-service dev",
     "dev:chat": "pnpm --filter @web-rtc-nest/chat-service dev",
     "dev:gateway": "pnpm --filter @web-rtc-nest/gateway-service dev",
