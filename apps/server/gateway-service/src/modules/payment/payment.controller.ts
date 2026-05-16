@@ -1,14 +1,7 @@
 import type { OnModuleInit } from '@nestjs/common';
 import { Body, Controller, Get, Inject, Param, Post, Query } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type {
   ListPaymentOperationsResponse,
   PaymentGrpcService,
@@ -81,7 +74,7 @@ export class PaymentController implements OnModuleInit {
   @ApiParam({
     name: 'operationId',
     description: 'ID денежной операции.',
-    example: '9f11c2df-5b7c-41da-88ab-e2264d9f75d1',
+    example: 'fe9061fe-f787-4c59-94dd-e193105ca950',
   })
   @ApiResponse({ status: 200, type: PaymentOperationDto })
   getOperation(@Param() params: GetPaymentOperationParamsDto): Promise<PaymentOperation> {
@@ -103,7 +96,7 @@ export class PaymentController implements OnModuleInit {
   @ApiParam({
     name: 'userId',
     description: 'ID пользователя, чьи операции нужно получить.',
-    example: '2a2d0f7f-c1df-4b8b-a6cc-80101895b405',
+    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
   })
   @ApiQuery({
     name: 'limit',

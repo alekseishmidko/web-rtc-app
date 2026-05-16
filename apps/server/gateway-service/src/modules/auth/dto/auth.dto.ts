@@ -1,13 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import type {
   RegisterRequest,
   LoginRequest,
@@ -70,7 +62,7 @@ export class RefreshSessionRequestDto implements RefreshSessionRequest {
 }
 
 export class AuthUserDto implements AuthUser {
-  @ApiProperty({ example: '2a2d0f7f-c1df-4b8b-a6cc-80101895b405' })
+  @ApiProperty({ example: '27b976f6-2137-4899-a088-d11775ef3f5c' })
   @IsUUID()
   id: string;
 
