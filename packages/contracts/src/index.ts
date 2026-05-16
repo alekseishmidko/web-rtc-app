@@ -24,10 +24,20 @@ export type {
   MarkAsReadRequest,
   NotificationResponse,
   NotificationsGrpcService,
+  PaymentGrpcService,
+  PaymentOperation,
   RoomResponse,
   RoomsGrpcService,
   SendNotificationRequest,
+  CreatePaymentOperationPayload,
+  GetPaymentOperationPayload,
+  ListPaymentOperationsPayload,
+  ListPaymentOperationsResponse,
 } from './grpc-contracts';
+export type {
+  PaymentOperationStatus,
+  PaymentOperationType,
+} from './types/payment.types';
 export type {
   ChatConversation,
   ChatConversationType,
