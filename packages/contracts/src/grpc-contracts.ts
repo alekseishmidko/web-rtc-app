@@ -21,6 +21,13 @@ import type {
   ChatRoomSyncPayload,
   ChatSendMessagePayload,
 } from './types/chat.types';
+import type {
+  CreatePaymentOperationPayload,
+  GetPaymentOperationPayload,
+  ListPaymentOperationsPayload,
+  ListPaymentOperationsResponse,
+  PaymentOperation,
+} from './types/payment.types';
 
 export interface AuthGrpcService {
   register(request: RegisterRequest): Observable<AuthResponse>;
@@ -146,3 +153,17 @@ export interface ChatGrpcService {
   clearHistory(request: ChatClearHistoryPayload): Observable<ChatClearHistoryResponse>;
   getParticipantIds(request: { conversationId: string }): Observable<{ participantIds: string[] }>;
 }
+
+export interface PaymentGrpcService {
+  createOperation(request: CreatePaymentOperationPayload): Observable<PaymentOperation>;
+  getOperation(request: GetPaymentOperationPayload): Observable<PaymentOperation>;
+  listOperations(request: ListPaymentOperationsPayload): Observable<ListPaymentOperationsResponse>;
+}
+
+export type {
+  CreatePaymentOperationPayload,
+  GetPaymentOperationPayload,
+  ListPaymentOperationsPayload,
+  ListPaymentOperationsResponse,
+  PaymentOperation,
+};

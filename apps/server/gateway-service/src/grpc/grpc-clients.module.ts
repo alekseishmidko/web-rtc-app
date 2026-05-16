@@ -7,6 +7,7 @@ export const AUTH_GRPC_CLIENT = 'AUTH_GRPC_CLIENT';
 export const ROOMS_GRPC_CLIENT = 'ROOMS_GRPC_CLIENT';
 export const NOTIFICATIONS_GRPC_CLIENT = 'NOTIFICATIONS_GRPC_CLIENT';
 export const CHAT_GRPC_CLIENT = 'CHAT_GRPC_CLIENT';
+export const PAYMENT_GRPC_CLIENT = 'PAYMENT_GRPC_CLIENT';
 
 @Module({
   imports: [
@@ -45,6 +46,15 @@ export const CHAT_GRPC_CLIENT = 'CHAT_GRPC_CLIENT';
           package: 'chat',
           protoPath: join(protoRoot, 'chat.proto'),
           url: grpcTargets.chat,
+        },
+      },
+      {
+        name: PAYMENT_GRPC_CLIENT,
+        transport: Transport.GRPC,
+        options: {
+          package: 'payment',
+          protoPath: join(protoRoot, 'payment.proto'),
+          url: grpcTargets.payment,
         },
       },
     ]),

@@ -71,10 +71,17 @@ export class GrpcExceptionFilter implements ExceptionFilter {
 
         if (exception instanceof HttpException) {
             const status = exception.getStatus()
+            const exceptionResponse = exception.getResponse()
+            const message =
+                typeof exceptionResponse === 'object' &&
+                exceptionResponse !== null &&
+                'message' in exceptionResponse
+                    ? (exceptionResponse as { message: string | string[] }).message
+                    : exception.message
 
             return response.status(status).json({
                 statusCode: status,
-                message: exception.message ?? 'gRPC error'
+                message: message ?? 'HTTP error'
             })
         }
 
