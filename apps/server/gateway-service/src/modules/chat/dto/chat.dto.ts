@@ -57,7 +57,7 @@ export class ChatMessageDto implements ChatMessage {
   @ApiProperty({ example: 'b7a9c906-16e3-4c2f-91e3-d6823f5c24ac' })
   conversationId: string;
 
-  @ApiProperty({ example: '2a2d0f7f-c1df-4b8b-a6cc-80101895b405' })
+  @ApiProperty({ example: '27b976f6-2137-4899-a088-d11775ef3f5c' })
   senderId: string;
 
   @ApiPropertyOptional({ example: 'Hello from gateway REST facade' })
@@ -91,7 +91,7 @@ export class ChatListMessagesResponseDto {
 export class DeleteMessagesRequestDto implements ChatDeleteMessagesPayload {
   @ApiProperty({
     description: 'User requesting deletion. Chat-service deletes only this user messages.',
-    example: '2a2d0f7f-c1df-4b8b-a6cc-80101895b405',
+    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
   })
   userId: string;
 
@@ -116,7 +116,7 @@ export class DeleteMessagesResponseDto implements ChatDeleteMessagesResponse {
 export class ClearHistoryRequestDto implements Omit<ChatClearHistoryPayload, 'conversationId'> {
   @ApiProperty({
     description: 'User requesting history cleanup. Must be a participant of the conversation.',
-    example: '2a2d0f7f-c1df-4b8b-a6cc-80101895b405',
+    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
   })
   userId: string;
 }
