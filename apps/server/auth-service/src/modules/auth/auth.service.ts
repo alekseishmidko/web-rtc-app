@@ -1,12 +1,13 @@
 import type { OnModuleInit } from '@nestjs/common';
 import { Inject, Injectable } from '@nestjs/common';
 import { status } from '@grpc/grpc-js';
-import { RpcException } from '@nestjs/microservices';
+import { ClientGrpc, RpcException } from '@nestjs/microservices';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { lastValueFrom } from 'rxjs';
 
-import type { UserRecord } from '../../database/user.schema';
-import { users } from '../../database/user.schema';
+import type { AccountRecord } from '../../database/account.schema';
+import { accounts } from '../../database/account.schema';
 import type { AuthDatabase } from '../../database/database.module';
 import { DATABASE } from '../../database/database.module';
 import type {
@@ -15,21 +16,30 @@ import type {
   LoginRequest,
   RefreshSessionRequest,
   RegisterRequest,
+  UserGrpcService,
+  UserProfile,
   ValidateSessionResponse,
 } from '@web-rtc-nest/contracts';
 import { TokenService } from '../token/token.service';
+import { USER_GRPC_CLIENT } from './auth.constants';
 import { PasswordService } from './password.service';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
+  private userService: UserGrpcService;
+
   constructor(
     @Inject(DATABASE)
     private readonly database: AuthDatabase,
+    @Inject(USER_GRPC_CLIENT)
+    private readonly userClient: ClientGrpc,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
   ) {}
 
   async onModuleInit() {
+    this.userService = this.userClient.getService<UserGrpcService>('UserService');
+
     // Для dev-сценария сервис сам поднимает минимальную схему.
     // В production это лучше заменить на управляемые миграции Drizzle, чтобы
     // изменение схемы было версионируемым и атомарным.
@@ -42,9 +52,25 @@ export class AuthService implements OnModuleInit {
     `);
 
     await this.database.execute(sql`
-      CREATE TABLE IF NOT EXISTS users (
+      DO $$
+      BEGIN
+        IF to_regclass('public.users') IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
+              AND column_name = 'email'
+          )
+        THEN
+          DROP TABLE users;
+        END IF;
+      END $$;
+    `);
+
+    await this.database.execute(sql`
+      CREATE TABLE IF NOT EXISTS accounts (
         id uuid PRIMARY KEY,
-        name text NOT NULL,
         email text NOT NULL UNIQUE,
         password_hash text NOT NULL,
         role user_role NOT NULL DEFAULT 'user',
@@ -64,9 +90,9 @@ export class AuthService implements OnModuleInit {
     `);
 
     await this.database.execute(sql`
-      DROP TRIGGER IF EXISTS users_set_updated_at ON users;
-      CREATE TRIGGER users_set_updated_at
-      BEFORE UPDATE ON users
+      DROP TRIGGER IF EXISTS accounts_set_updated_at ON accounts;
+      CREATE TRIGGER accounts_set_updated_at
+      BEFORE UPDATE ON accounts
       FOR EACH ROW
       EXECUTE FUNCTION set_updated_at();
     `);
@@ -84,46 +110,50 @@ export class AuthService implements OnModuleInit {
       );
     }
 
-    const existingUser = await this.database.query.users.findFirst({
-      where: eq(users.email, email),
+    const existingAccount = await this.database.query.accounts.findFirst({
+      where: eq(accounts.email, email),
       columns: {
         id: true,
       },
     });
 
-    if (existingUser) {
-      throw this.createRpcException(status.ALREADY_EXISTS, 'User with this email already exists.');
+    if (existingAccount) {
+      throw this.createRpcException(
+        status.ALREADY_EXISTS,
+        'Account with this email already exists.',
+      );
     }
 
     const passwordHash = await this.passwordService.hash(password);
+    const accountId = randomUUID();
 
     try {
-      const [user] = await this.database
-        .insert(users)
+      const [account] = await this.database
+        .insert(accounts)
         .values({
-          id: randomUUID(),
-          name,
+          id: accountId,
           email,
           passwordHash,
           role: 'user',
         })
         .returning();
 
-      if (!user) {
-        throw this.createRpcException(status.INTERNAL, 'Failed to create user.');
+      if (!account) {
+        throw this.createRpcException(status.INTERNAL, 'Failed to create account.');
       }
 
-      const sessions = await this.tokenService.createPair(user.id);
+      const profile = await this.createUserProfile(account.id, name);
+      const sessions = await this.tokenService.createPair(account.id);
 
       return {
         ...sessions,
-        user: this.toAuthUser(user),
+        user: this.toAuthUser(account, profile),
       };
     } catch (error) {
       if (this.isUniqueViolation(error)) {
         throw this.createRpcException(
           status.ALREADY_EXISTS,
-          'User with this email already exists.',
+          'Account with this email already exists.',
         );
       }
 
@@ -139,25 +169,31 @@ export class AuthService implements OnModuleInit {
       throw this.createRpcException(status.INVALID_ARGUMENT, 'Email and password are required.');
     }
 
-    const user = await this.findUserByEmail(email);
+    const account = await this.findAccountByEmail(email);
 
     // Не раскрываем, существует ли email. Одинаковая ошибка для неизвестного
     // email и неверного пароля снижает риск user enumeration.
-    if (!user) {
+    if (!account) {
       throw this.createRpcException(status.UNAUTHENTICATED, 'Invalid email or password.');
     }
 
-    const passwordMatches = await this.passwordService.verify(request.password, user.passwordHash);
+    const passwordMatches = await this.passwordService.verify(
+      request.password,
+      account.passwordHash,
+    );
 
     if (!passwordMatches) {
       throw this.createRpcException(status.UNAUTHENTICATED, 'Invalid email or password.');
     }
 
-    const sessions = await this.tokenService.createPair(user.id);
+    const [sessions, profile] = await Promise.all([
+      this.tokenService.createPair(account.id),
+      this.getUserProfile(account.id),
+    ]);
 
     return {
       ...sessions,
-      user: this.toAuthUser(user),
+      user: this.toAuthUser(account, profile),
     };
   }
 
@@ -175,16 +211,18 @@ export class AuthService implements OnModuleInit {
       throw this.createRpcException(status.UNAUTHENTICATED, 'Invalid refresh session.');
     }
 
-    const userId = await this.tokenService.getUserId(sessions.accessSessionId, 'access');
-    const user = userId ? await this.findUserById(userId) : undefined;
+    const accountId = await this.tokenService.getUserId(sessions.accessSessionId, 'access');
+    const account = accountId ? await this.findAccountById(accountId) : undefined;
 
-    if (!user) {
+    if (!account) {
       throw this.createRpcException(status.UNAUTHENTICATED, 'Invalid refresh session.');
     }
 
+    const profile = await this.getUserProfile(account.id);
+
     return {
       ...sessions,
-      user: this.toAuthUser(user),
+      user: this.toAuthUser(account, profile),
     };
   }
 
@@ -195,45 +233,68 @@ export class AuthService implements OnModuleInit {
       return { valid: false };
     }
 
-    const userId = await this.tokenService.getUserId(accessSessionId, 'access');
+    const accountId = await this.tokenService.getUserId(accessSessionId, 'access');
 
-    if (!userId) {
+    if (!accountId) {
       return { valid: false };
     }
 
-    const user = await this.findUserById(userId);
+    const account = await this.findAccountById(accountId);
 
-    // Слабое место текущей модели: если user удален/заблокирован, Redis-сессия
-    // сама не знает об этом. Поэтому мы всегда дочитываем user из Postgres.
-    if (!user) {
+    // Слабое место текущей модели: если account удален/заблокирован, Redis-сессия
+    // сама не знает об этом. Поэтому мы всегда дочитываем account из Postgres.
+    if (!account) {
       return { valid: false };
     }
+
+    const profile = await this.getUserProfile(account.id);
 
     return {
       valid: true,
-      user: this.toAuthUser(user),
+      user: this.toAuthUser(account, profile),
     };
   }
 
-  private async findUserByEmail(email: string) {
-    const [user] = await this.database.select().from(users).where(eq(users.email, email)).limit(1);
-    return user;
+  private async findAccountByEmail(email: string) {
+    const [account] = await this.database
+      .select()
+      .from(accounts)
+      .where(eq(accounts.email, email))
+      .limit(1);
+    return account;
   }
 
-  private async findUserById(userId: string) {
-    const [user] = await this.database.select().from(users).where(eq(users.id, userId)).limit(1);
-    return user;
+  private async findAccountById(accountId: string) {
+    const [account] = await this.database
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+    return account;
   }
 
-  private toAuthUser(user: UserRecord): AuthUser {
-    // Наружу не отдаем email и passwordHash. Для авторизации достаточно id+role,
-    // а лишние поля расширяют поверхность утечек.
+  private async createUserProfile(accountId: string, name: string) {
+    try {
+      return await lastValueFrom(this.userService.createProfile({ accountId, name }));
+    } catch (error) {
+      await this.database.delete(accounts).where(eq(accounts.id, accountId));
+      throw error;
+    }
+  }
+
+  private async getUserProfile(accountId: string) {
+    return lastValueFrom(this.userService.getProfileByAccountId({ accountId }));
+  }
+
+  private toAuthUser(account: AccountRecord, profile: UserProfile): AuthUser {
+    // Наружу не отдаем email и passwordHash. Auth-response содержит account id,
+    // роль из auth-service и имя профиля из user-service.
     return {
-      id: user.id,
-      name: user.name,
-      role: user.role,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
+      id: account.id,
+      name: profile.name,
+      role: account.role,
+      createdAt: account.createdAt.toISOString(),
+      updatedAt: account.updatedAt.toISOString(),
     };
   }
 

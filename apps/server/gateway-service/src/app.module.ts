@@ -8,12 +8,13 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { SignalingModule } from './modules/signaling/signaling.module';
 import { SharedModule } from './modules/shared/shared.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`.env.${process.env.NODE_ENV ?? 'local'}`, '.env'],
+      envFilePath: [`.env.${process.env.NODE_ENV ?? 'local'}`, '.env.example'],
     }),
     AuthModule,
     ChatModule,
@@ -23,6 +24,7 @@ import { SharedModule } from './modules/shared/shared.module';
     RoomsModule,
     SharedModule,
     SignalingModule,
+    UserModule,
   ],
 })
 export class AppModule {}

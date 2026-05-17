@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package user;
+
+message UserProfile {
+  string id = 1;
+  string account_id = 2;
+  string name = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+message CreateUserProfileRequest {
+  string account_id = 1;
+  string name = 2;
+}
+
+message GetUserProfileByAccountIdRequest {
+  string account_id = 1;
+}
+
+message UpdateUserProfileRequest {
+  string account_id = 1;
+  string name = 2;
+}
+
+service UserService {
+  rpc CreateProfile (CreateUserProfileRequest) returns (UserProfile);
+  rpc GetProfileByAccountId (GetUserProfileByAccountIdRequest) returns (UserProfile);
+  rpc UpdateProfile (UpdateUserProfileRequest) returns (UserProfile);
+}

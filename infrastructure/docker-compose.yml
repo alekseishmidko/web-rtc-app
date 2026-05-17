@@ -13,6 +13,7 @@ services:
       - ..:/workspace
     depends_on:
       - auth-service
+      - user-service
       - chat-service
       - payment-service
       - kafka
@@ -32,8 +33,24 @@ services:
     volumes:
       - ..:/workspace
     depends_on:
+      - user-service
       - postgres
       - redis
+
+  user-service:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @web-rtc-nest/user-service dev"
+    ports:
+      - "50056:50056"
+    env_file:
+      - ../apps/server/user-service/.env.production
+    environment:
+      CI: "true"
+    volumes:
+      - ..:/workspace
+    depends_on:
+      - postgres
 
   chat-service:
     image: node:22-alpine

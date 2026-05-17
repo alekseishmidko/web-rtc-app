@@ -6,7 +6,7 @@ import { SignalingModule } from './signaling/signaling.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`.env.${process.env.NODE_ENV ?? 'local'}`, '.env'],
+      envFilePath: [`.env.${process.env.NODE_ENV ?? 'local'}`, '.env.example'],
     }),
     SignalingModule,
   ],

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { grpcTargets, protoRoot } from '../config/grpc.config';
 
 export const AUTH_GRPC_CLIENT = 'AUTH_GRPC_CLIENT';
+export const USER_GRPC_CLIENT = 'USER_GRPC_CLIENT';
 export const ROOMS_GRPC_CLIENT = 'ROOMS_GRPC_CLIENT';
 export const NOTIFICATIONS_GRPC_CLIENT = 'NOTIFICATIONS_GRPC_CLIENT';
 export const CHAT_GRPC_CLIENT = 'CHAT_GRPC_CLIENT';
@@ -19,6 +20,15 @@ export const PAYMENT_GRPC_CLIENT = 'PAYMENT_GRPC_CLIENT';
           package: 'auth',
           protoPath: join(protoRoot, 'auth.proto'),
           url: grpcTargets.auth,
+        },
+      },
+      {
+        name: USER_GRPC_CLIENT,
+        transport: Transport.GRPC,
+        options: {
+          package: 'user',
+          protoPath: join(protoRoot, 'user.proto'),
+          url: grpcTargets.user,
         },
       },
       {
