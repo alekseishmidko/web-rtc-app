@@ -9,6 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const grpcUrl = configService.getOrThrow<string>('GRPC_URL');
+  const nodeEnv = configService.getOrThrow<string>('NODE_ENV');
 
   app.connectMicroservice({
     transport: Transport.GRPC,
@@ -21,7 +22,7 @@ async function bootstrap() {
 
   await app.init();
   await app.startAllMicroservices();
-  Logger.log(`Auth service gRPC is running on ${grpcUrl}`, 'Bootstrap');
+  Logger.log(`Auth service gRPC is running on ${grpcUrl} in ${nodeEnv} mode`, 'Bootstrap');
 }
 
 void bootstrap();

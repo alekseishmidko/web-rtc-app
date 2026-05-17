@@ -3,6 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { SignalingModule } from './signaling/signaling.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), SignalingModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [`.env.${process.env.NODE_ENV ?? 'local'}`, '.env'],
+    }),
+    SignalingModule,
+  ],
 })
 export class AppModule {}
