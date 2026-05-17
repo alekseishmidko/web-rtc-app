@@ -31,7 +31,7 @@ export class CreatePaymentOperationRequestDto implements CreatePaymentOperationP
   /** ID пользователя, к которому относится денежная операция. */
   @ApiProperty({
     description: 'ID пользователя, к которому относится денежная операция.',
-    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
+    example: 'e63ad47b-caf4-49b0-89f6-bc9b43f2f354',
   })
   @IsUUID()
   userId: string;
@@ -87,7 +87,7 @@ export class PaymentOperationDto implements PaymentOperation {
   /** ID пользователя, которому принадлежит операция. */
   @ApiProperty({
     description: 'ID пользователя, которому принадлежит операция.',
-    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
+    example: 'e63ad47b-caf4-49b0-89f6-bc9b43f2f354',
   })
   userId: string;
 
@@ -164,7 +164,7 @@ export class ListPaymentOperationsParamsDto {
   /** ID пользователя, для которого нужно вернуть историю денежных операций. */
   @ApiProperty({
     description: 'ID пользователя, для которого нужно вернуть историю денежных операций.',
-    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
+    example: 'e63ad47b-caf4-49b0-89f6-bc9b43f2f354',
   })
   @IsUUID()
   userId: string;

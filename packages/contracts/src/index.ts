@@ -29,10 +29,15 @@ export type {
   RoomResponse,
   RoomsGrpcService,
   SendNotificationRequest,
+  UserGrpcService,
   CreatePaymentOperationPayload,
   GetPaymentOperationPayload,
   ListPaymentOperationsPayload,
   ListPaymentOperationsResponse,
+  CreateUserProfileRequest,
+  GetUserProfileByAccountIdRequest,
+  UpdateUserProfileRequest,
+  UserProfile,
 } from './grpc-contracts';
 export type {
   PaymentOperationStatus,

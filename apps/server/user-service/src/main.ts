@@ -8,21 +8,21 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const grpcUrl = configService.getOrThrow<string>('AUTH_GRPC_URL');
-  const nodeEnv = configService.getOrThrow<string>('NODE_ENV');
+  const grpcUrl = configService.getOrThrow<string>('GRPC_URL');
 
   app.connectMicroservice({
     transport: Transport.GRPC,
     options: {
-      package: 'auth',
-      protoPath: join(process.cwd(), '../../../packages/contracts/proto/auth.proto'),
+      package: 'user',
+      protoPath: join(process.cwd(), '../../../packages/contracts/proto/user.proto'),
       url: grpcUrl,
     },
   });
 
   await app.init();
   await app.startAllMicroservices();
-  Logger.log(`Auth service gRPC is running on ${grpcUrl} in ${nodeEnv} mode`, 'Bootstrap');
+
+  Logger.log(`User service gRPC is running on ${grpcUrl}`, 'Bootstrap');
 }
 
 void bootstrap();

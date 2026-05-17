@@ -28,6 +28,12 @@ import type {
   ListPaymentOperationsResponse,
   PaymentOperation,
 } from './types/payment.types';
+import type {
+  CreateUserProfileRequest,
+  GetUserProfileByAccountIdRequest,
+  UpdateUserProfileRequest,
+  UserProfile,
+} from './types/user.types';
 
 export interface AuthGrpcService {
   register(request: RegisterRequest): Observable<AuthResponse>;
@@ -160,10 +166,25 @@ export interface PaymentGrpcService {
   listOperations(request: ListPaymentOperationsPayload): Observable<ListPaymentOperationsResponse>;
 }
 
+export interface UserGrpcService {
+  createProfile(request: CreateUserProfileRequest): Observable<UserProfile>;
+  getProfileByAccountId(
+    request: GetUserProfileByAccountIdRequest,
+  ): Observable<UserProfile>;
+  updateProfile(request: UpdateUserProfileRequest): Observable<UserProfile>;
+}
+
 export type {
   CreatePaymentOperationPayload,
   GetPaymentOperationPayload,
   ListPaymentOperationsPayload,
   ListPaymentOperationsResponse,
   PaymentOperation,
+};
+
+export type {
+  CreateUserProfileRequest,
+  GetUserProfileByAccountIdRequest,
+  UpdateUserProfileRequest,
+  UserProfile,
 };

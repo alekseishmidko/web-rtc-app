@@ -14,7 +14,7 @@ export class RegisterRequestDto implements RegisterRequest {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'strong-password-123' })
+  @ApiProperty({ example: 'qwerty123' })
   @IsString()
   @MinLength(8)
   @MaxLength(128)
@@ -32,7 +32,7 @@ export class LoginRequestDto implements LoginRequest {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'strong-password-123' })
+  @ApiProperty({ example: 'qwerty123' })
   @IsString()
   @MinLength(8)
   @MaxLength(128)
@@ -62,7 +62,7 @@ export class RefreshSessionRequestDto implements RefreshSessionRequest {
 }
 
 export class AuthUserDto implements AuthUser {
-  @ApiProperty({ example: '27b976f6-2137-4899-a088-d11775ef3f5c' })
+  @ApiProperty({ example: 'e63ad47b-caf4-49b0-89f6-bc9b43f2f354' })
   @IsUUID()
   id: string;
 

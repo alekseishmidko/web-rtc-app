@@ -61,7 +61,7 @@ export class ChatController implements OnModuleInit {
   @ApiQuery({
     name: 'userId',
     description: 'Participant requesting the history. Required by chat-service access check.',
-    example: '27b976f6-2137-4899-a088-d11775ef3f5c',
+    example: 'e63ad47b-caf4-49b0-89f6-bc9b43f2f354',
   })
   @ApiQuery({
     name: 'limit',
