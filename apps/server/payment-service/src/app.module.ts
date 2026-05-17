@@ -4,6 +4,13 @@ import { DatabaseModule } from './database/database.module';
 import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, PaymentModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [`.env.${process.env.NODE_ENV ?? 'local'}`, '.env'],
+    }),
+    DatabaseModule,
+    PaymentModule,
+  ],
 })
 export class AppModule {}
