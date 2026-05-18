@@ -2,6 +2,11 @@
   "name": "web-rtc-nest",
   "private": true,
   "packageManager": "pnpm@10.26.2",
+  "pnpm": {
+    "overrides": {
+      "lodash": "4.17.21"
+    }
+  },
   "scripts": {
     "dev": "pnpm dev:local",
     "dev:local": "pnpm dev:local:infra && pnpm dev:local:services",
