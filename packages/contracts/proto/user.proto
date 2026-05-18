@@ -8,11 +8,28 @@ message UserProfile {
   string name = 3;
   string created_at = 4;
   string updated_at = 5;
+  string birth_day = 6;
+  string currency = 7;
+  string country = 8;
+  string locale = 9;
+  string timezone = 10;
+  string avatar_url = 11;
+  string bio = 12;
+  string phone_number = 13;
+  string deleted_at = 14;
 }
 
 message CreateUserProfileRequest {
   string account_id = 1;
   string name = 2;
+  string birth_day = 3;
+  string currency = 4;
+  string country = 5;
+  string locale = 6;
+  string timezone = 7;
+  string avatar_url = 8;
+  string bio = 9;
+  string phone_number = 10;
 }
 
 message GetUserProfileByAccountIdRequest {
@@ -22,6 +39,14 @@ message GetUserProfileByAccountIdRequest {
 message UpdateUserProfileRequest {
   string account_id = 1;
   string name = 2;
+  string birth_day = 3;
+  string currency = 4;
+  string country = 5;
+  string locale = 6;
+  string timezone = 7;
+  string avatar_url = 8;
+  string bio = 9;
+  string phone_number = 10;
 }
 
 service UserService {
